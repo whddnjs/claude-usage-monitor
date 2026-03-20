@@ -1,6 +1,6 @@
 {
   "name": "claude-usage-monitor",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Claude Code usage monitor - Windows system tray app",
   "main": "src/main/index.js",
   "scripts": {

@@ -89,11 +89,16 @@ function createTaskbarWidget() {
   widgetWindow.setIgnoreMouseEvents(true, { forward: true });
 
   widgetWindow.webContents.on('did-finish-load', () => {
-    widgetWindow.showInactive();
-    // Re-apply exact position after show (Windows may shift it during setAlwaysOnTop)
     const target = savedPos || getDefaultPosition();
+    // Set position before showing to avoid flicker
     widgetWindow.setPosition(target.x, target.y);
-    // Send initial lock state to renderer
+    widgetWindow.showInactive();
+    // Re-apply after a tick to counter any OS adjustment
+    setTimeout(() => {
+      if (widgetWindow && !widgetWindow.isDestroyed()) {
+        widgetWindow.setPosition(target.x, target.y);
+      }
+    }, 50);
     widgetWindow.webContents.send('widget-lock-state', isLocked());
   });
 
@@ -150,14 +155,13 @@ function createTaskbarWidget() {
     }
   });
 
+  // Only re-show if hidden by another app; do NOT re-apply setAlwaysOnTop
+  // as it causes Windows DWM to shift the window position
   setInterval(() => {
-    if (widgetWindow && !widgetWindow.isDestroyed()) {
-      if (!widgetWindow.isVisible()) {
-        widgetWindow.showInactive();
-      }
-      widgetWindow.setAlwaysOnTop(true, 'screen-saver');
+    if (widgetWindow && !widgetWindow.isDestroyed() && !widgetWindow.isVisible()) {
+      widgetWindow.showInactive();
     }
-  }, 100);
+  }, 500);
 
   return widgetWindow;
 }
