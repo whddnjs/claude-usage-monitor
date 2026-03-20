@@ -10,59 +10,50 @@ const WIDGET_H = 48;
 let widgetWindow = null;
 let popupWindow = null;
 let lastRateLimits = null;
+let savedPos = null; // cached for re-apply after show
 
-function getTaskbarRect() {
+function getDefaultPosition() {
   const display = screen.getPrimaryDisplay();
   const { width: totalW, height: totalH } = display.size;
   const workArea = display.workArea;
   const bounds = display.bounds;
 
-  // Taskbar is the area between full screen and work area
-  let rect;
-  if (workArea.y > bounds.y) {
-    // top
-    rect = { x: bounds.x, y: bounds.y, width: totalW, height: workArea.y - bounds.y };
-  } else if (workArea.x > bounds.x) {
-    // left
-    rect = { x: bounds.x, y: bounds.y, width: workArea.x - bounds.x, height: totalH };
-  } else if (workArea.width < totalW) {
-    // right
-    rect = { x: workArea.x + workArea.width, y: bounds.y, width: totalW - workArea.width, height: totalH };
+  let taskbarPos = 'bottom';
+  if (workArea.y > bounds.y) taskbarPos = 'top';
+  else if (workArea.x > bounds.x) taskbarPos = 'left';
+  else if (workArea.width < totalW) taskbarPos = 'right';
+
+  let x, y;
+  if (taskbarPos === 'bottom') {
+    x = bounds.x + totalW - WIDGET_W - 140;
+    y = workArea.y + workArea.height;
+  } else if (taskbarPos === 'top') {
+    x = bounds.x + totalW - WIDGET_W - 140;
+    y = bounds.y;
+  } else if (taskbarPos === 'right') {
+    x = workArea.x + workArea.width;
+    y = bounds.y + totalH - WIDGET_H - 100;
   } else {
-    // bottom (default)
-    rect = { x: bounds.x, y: workArea.y + workArea.height, width: totalW, height: totalH - workArea.height };
+    x = bounds.x;
+    y = bounds.y + totalH - WIDGET_H - 100;
   }
 
-  // Fallback if taskbar size is 0
-  if (rect.height <= 0) rect.height = 48;
-  if (rect.width <= 0) rect.width = 48;
-
-  return rect;
-}
-
-function getDefaultPosition() {
-  const tb = getTaskbarRect();
-  const x = tb.x + tb.width - WIDGET_W - 140;
-  const y = tb.y;
   return { x, y };
-}
-
-function isOnTaskbar(x, y) {
-  const tb = getTaskbarRect();
-  // Allow some tolerance (widget partially outside is OK)
-  const margin = 20;
-  return x >= tb.x - margin && x + WIDGET_W <= tb.x + tb.width + margin &&
-         y >= tb.y - margin && y + WIDGET_H <= tb.y + tb.height + margin;
 }
 
 function getSavedPosition() {
   const saved = config.get('widgetPosition', null);
   if (!saved) return null;
 
-  // Validate position is still on taskbar
-  if (!isOnTaskbar(saved.x, saved.y)) return null;
+  // Validate position is on any connected display
+  const displays = screen.getAllDisplays();
+  const onScreen = displays.some(d => {
+    const b = d.bounds;
+    return saved.x >= b.x - 50 && saved.x < b.x + b.width + 50 &&
+           saved.y >= b.y - 50 && saved.y < b.y + b.height + 50;
+  });
 
-  return saved;
+  return onScreen ? saved : null;
 }
 
 function isLocked() {
@@ -70,8 +61,8 @@ function isLocked() {
 }
 
 function createTaskbarWidget() {
-  const saved = getSavedPosition();
-  const pos = saved || getDefaultPosition();
+  savedPos = getSavedPosition();
+  const pos = savedPos || getDefaultPosition();
 
   widgetWindow = new BrowserWindow({
     width: WIDGET_W,
@@ -99,6 +90,9 @@ function createTaskbarWidget() {
 
   widgetWindow.webContents.on('did-finish-load', () => {
     widgetWindow.showInactive();
+    // Re-apply exact position after show (Windows may shift it during setAlwaysOnTop)
+    const target = savedPos || getDefaultPosition();
+    widgetWindow.setPosition(target.x, target.y);
     // Send initial lock state to renderer
     widgetWindow.webContents.send('widget-lock-state', isLocked());
   });
@@ -133,15 +127,8 @@ function createTaskbarWidget() {
     if (isLocked()) return;
     if (!widgetWindow || widgetWindow.isDestroyed()) return;
     const [x, y] = widgetWindow.getPosition();
-
-    // If dropped outside taskbar, reset to default
-    if (!isOnTaskbar(x, y)) {
-      console.log('Widget dropped outside taskbar, resetting position');
-      resetWidgetPosition();
-      return;
-    }
-
-    config.set('widgetPosition', { x, y });
+    savedPos = { x, y };
+    config.set('widgetPosition', savedPos);
     console.log(`Widget position saved: (${x}, ${y})`);
   });
 
@@ -204,6 +191,7 @@ function showWidgetContextMenu() {
 }
 
 function resetWidgetPosition() {
+  savedPos = null;
   config.set('widgetPosition', null);
   repositionWidget();
 }
