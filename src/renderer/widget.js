@@ -53,64 +53,66 @@ window.widgetApi.onLockState((state) => {
   locked = state;
   updateCursor();
 });
-
-// Request initial lock state
 window.widgetApi.getLockState();
 
-// --- Drag & Click handling ---
+// --- Drag & Click ---
 const DRAG_THRESHOLD = 5;
-let dragState = null;
+let drag = null;
 
 widgetEl.addEventListener('mousedown', (e) => {
-  if (e.button === 0) {
-    dragState = { startX: e.screenX, startY: e.screenY, dragging: false };
-  }
+  if (e.button !== 0) return;
+  // Record the mouse-down screen position AND the offset within the widget
+  drag = {
+    mouseStartX: e.screenX,
+    mouseStartY: e.screenY,
+    // offset from widget top-left to mouse position
+    offsetX: e.clientX,
+    offsetY: e.clientY,
+    moving: false,
+  };
 });
 
 document.addEventListener('mousemove', (e) => {
-  if (!dragState) return;
-  if (locked) return;
+  if (!drag || locked) return;
 
-  const dx = e.screenX - dragState.startX;
-  const dy = e.screenY - dragState.startY;
-
-  if (!dragState.dragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
-    dragState.dragging = true;
+  if (!drag.moving) {
+    const dx = Math.abs(e.screenX - drag.mouseStartX);
+    const dy = Math.abs(e.screenY - drag.mouseStartY);
+    if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) return;
+    drag.moving = true;
     widgetEl.style.cursor = 'grabbing';
+    window.widgetApi.dragStart();
   }
 
-  if (dragState.dragging) {
-    window.widgetApi.dragMove(dx, dy);
-    dragState.startX = e.screenX;
-    dragState.startY = e.screenY;
-  }
+  // Set window position so the mouse stays at the same offset within the widget
+  const newX = e.screenX - drag.offsetX;
+  const newY = e.screenY - drag.offsetY;
+  window.widgetApi.dragTo(newX, newY);
 });
 
 document.addEventListener('mouseup', (e) => {
-  if (!dragState) return;
+  if (!drag) return;
 
-  if (dragState.dragging) {
+  if (drag.moving) {
     window.widgetApi.dragEnd();
     updateCursor();
   } else if (e.button === 0) {
     window.widgetApi.togglePopup();
   }
 
-  dragState = null;
+  drag = null;
 });
 
-// Right-click → context menu
+// Right-click
 widgetEl.addEventListener('contextmenu', (e) => {
   e.preventDefault();
   window.widgetApi.contextMenu();
 });
 
-// Mouse enter/leave for click-through toggle
+// Mouse enter/leave for click-through
 widgetEl.addEventListener('mouseenter', () => window.widgetApi.mouseEnter());
 widgetEl.addEventListener('mouseleave', () => {
-  if (!dragState) {
-    window.widgetApi.mouseLeave();
-  }
+  if (!drag) window.widgetApi.mouseLeave();
 });
 
 // --- Data updates ---
@@ -129,6 +131,5 @@ window.widgetApi.onUpdate((data) => {
   drawRing(ring7dCanvas, pct7d);
 });
 
-// Initial empty rings
 drawRing(ring5hCanvas, 0);
 drawRing(ring7dCanvas, 0);

@@ -10,7 +10,7 @@ const WIDGET_H = 48;
 let widgetWindow = null;
 let popupWindow = null;
 let lastRateLimits = null;
-let savedPos = null; // cached for re-apply after show
+let isDragging = false;
 
 function getDefaultPosition() {
   const display = screen.getPrimaryDisplay();
@@ -41,28 +41,15 @@ function getDefaultPosition() {
   return { x, y };
 }
 
-function getSavedPosition() {
-  const saved = config.get('widgetPosition', null);
-  if (!saved) return null;
-
-  // Validate position is on any connected display
-  const displays = screen.getAllDisplays();
-  const onScreen = displays.some(d => {
-    const b = d.bounds;
-    return saved.x >= b.x - 50 && saved.x < b.x + b.width + 50 &&
-           saved.y >= b.y - 50 && saved.y < b.y + b.height + 50;
-  });
-
-  return onScreen ? saved : null;
-}
-
 function isLocked() {
   return config.get('widgetLocked', false);
 }
 
 function createTaskbarWidget() {
-  savedPos = getSavedPosition();
-  const pos = savedPos || getDefaultPosition();
+  const saved = config.get('widgetPosition', null);
+  const pos = saved || getDefaultPosition();
+
+  console.log(`[Widget] Creating at (${pos.x}, ${pos.y}), saved=${JSON.stringify(saved)}`);
 
   widgetWindow = new BrowserWindow({
     width: WIDGET_W,
@@ -73,9 +60,9 @@ function createTaskbarWidget() {
     transparent: true,
     resizable: false,
     skipTaskbar: true,
-    alwaysOnTop: true,
     focusable: false,
     hasShadow: false,
+    thickFrame: false,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload-widget.js'),
@@ -84,25 +71,24 @@ function createTaskbarWidget() {
     },
   });
 
-  widgetWindow.setAlwaysOnTop(true, 'screen-saver');
+  // Use 'floating' instead of 'screen-saver' to avoid DWM position adjustments
+  widgetWindow.setAlwaysOnTop(true, 'floating');
   widgetWindow.loadFile(path.join(__dirname, '..', 'renderer', 'widget.html'));
   widgetWindow.setIgnoreMouseEvents(true, { forward: true });
 
   widgetWindow.webContents.on('did-finish-load', () => {
-    const target = savedPos || getDefaultPosition();
-    // Set position before showing to avoid flicker
-    widgetWindow.setPosition(target.x, target.y);
+    // Force exact position before and after show
+    widgetWindow.setPosition(pos.x, pos.y);
     widgetWindow.showInactive();
-    // Re-apply after a tick to counter any OS adjustment
-    setTimeout(() => {
-      if (widgetWindow && !widgetWindow.isDestroyed()) {
-        widgetWindow.setPosition(target.x, target.y);
-      }
-    }, 50);
+    widgetWindow.setPosition(pos.x, pos.y);
+
+    const [rx, ry] = widgetWindow.getPosition();
+    console.log(`[Widget] After show: target=(${pos.x},${pos.y}), actual=(${rx},${ry})`);
+
     widgetWindow.webContents.send('widget-lock-state', isLocked());
   });
 
-  // Mouse interaction toggle
+  // Mouse interaction
   ipcMain.on('widget-mouse-enter', () => {
     if (widgetWindow && !widgetWindow.isDestroyed()) {
       widgetWindow.setIgnoreMouseEvents(false);
@@ -110,39 +96,39 @@ function createTaskbarWidget() {
   });
 
   ipcMain.on('widget-mouse-leave', () => {
-    if (widgetWindow && !widgetWindow.isDestroyed()) {
+    if (widgetWindow && !widgetWindow.isDestroyed() && !isDragging) {
       widgetWindow.setIgnoreMouseEvents(true, { forward: true });
     }
   });
 
-  // Click → popup
   ipcMain.on('widget-toggle-popup', () => {
     togglePopup();
   });
 
-  // Drag support (only when unlocked)
-  ipcMain.on('widget-drag-move', (_event, deltaX, deltaY) => {
-    if (isLocked()) return;
+  // Drag: receive absolute screen position from renderer, set directly
+  ipcMain.on('widget-drag-start', () => {
+    isDragging = true;
+  });
+
+  ipcMain.on('widget-drag-to', (_event, x, y) => {
+    if (isLocked() || !isDragging) return;
     if (!widgetWindow || widgetWindow.isDestroyed()) return;
-    const [cx, cy] = widgetWindow.getPosition();
-    widgetWindow.setPosition(cx + deltaX, cy + deltaY);
+    widgetWindow.setPosition(x, y);
   });
 
   ipcMain.on('widget-drag-end', () => {
+    isDragging = false;
     if (isLocked()) return;
     if (!widgetWindow || widgetWindow.isDestroyed()) return;
     const [x, y] = widgetWindow.getPosition();
-    savedPos = { x, y };
-    config.set('widgetPosition', savedPos);
-    console.log(`Widget position saved: (${x}, ${y})`);
+    config.set('widgetPosition', { x, y });
+    console.log(`[Widget] Position saved: (${x}, ${y})`);
   });
 
-  // Right-click context menu
   ipcMain.on('widget-context-menu', () => {
     showWidgetContextMenu();
   });
 
-  // Query lock state
   ipcMain.on('widget-get-lock-state', () => {
     if (widgetWindow && !widgetWindow.isDestroyed()) {
       widgetWindow.webContents.send('widget-lock-state', isLocked());
@@ -154,14 +140,6 @@ function createTaskbarWidget() {
       repositionWidget();
     }
   });
-
-  // Only re-show if hidden by another app; do NOT re-apply setAlwaysOnTop
-  // as it causes Windows DWM to shift the window position
-  setInterval(() => {
-    if (widgetWindow && !widgetWindow.isDestroyed() && !widgetWindow.isVisible()) {
-      widgetWindow.showInactive();
-    }
-  }, 500);
 
   return widgetWindow;
 }
@@ -195,7 +173,6 @@ function showWidgetContextMenu() {
 }
 
 function resetWidgetPosition() {
-  savedPos = null;
   config.set('widgetPosition', null);
   repositionWidget();
 }
@@ -283,7 +260,7 @@ function createPopup() {
 function repositionWidget() {
   if (!widgetWindow || widgetWindow.isDestroyed()) return;
   const pos = getDefaultPosition();
-  widgetWindow.setBounds({ x: pos.x, y: pos.y, width: WIDGET_W, height: WIDGET_H });
+  widgetWindow.setPosition(pos.x, pos.y);
 }
 
 function updateWidget(data) {
