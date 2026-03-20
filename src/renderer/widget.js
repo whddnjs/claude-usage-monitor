@@ -109,12 +109,6 @@ widgetEl.addEventListener('contextmenu', (e) => {
   window.widgetApi.contextMenu();
 });
 
-// Mouse enter/leave for click-through
-widgetEl.addEventListener('mouseenter', () => window.widgetApi.mouseEnter());
-widgetEl.addEventListener('mouseleave', () => {
-  if (!drag) window.widgetApi.mouseLeave();
-});
-
 // --- Data updates ---
 window.widgetApi.onUpdate((data) => {
   if (!data || !data.rateLimits) return;

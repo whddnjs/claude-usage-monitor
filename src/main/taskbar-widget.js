@@ -10,7 +10,6 @@ const WIDGET_H = 48;
 let widgetWindow = null;
 let popupWindow = null;
 let lastRateLimits = null;
-let isDragging = false;
 
 function getDefaultPosition() {
   const display = screen.getPrimaryDisplay();
@@ -71,16 +70,15 @@ function createTaskbarWidget() {
     },
   });
 
-  // Use 'floating' instead of 'screen-saver' to avoid DWM position adjustments
-  widgetWindow.setAlwaysOnTop(true, 'floating');
+  widgetWindow.setAlwaysOnTop(true, 'screen-saver');
   widgetWindow.loadFile(path.join(__dirname, '..', 'renderer', 'widget.html'));
-  widgetWindow.setIgnoreMouseEvents(true, { forward: true });
+
+  // No setIgnoreMouseEvents - widget is always interactive
+  // This prevents the DWM position adjustment caused by toggling ignore state
 
   widgetWindow.webContents.on('did-finish-load', () => {
-    // Force exact position before and after show
     widgetWindow.setPosition(pos.x, pos.y);
     widgetWindow.showInactive();
-    widgetWindow.setPosition(pos.x, pos.y);
 
     const [rx, ry] = widgetWindow.getPosition();
     console.log(`[Widget] After show: target=(${pos.x},${pos.y}), actual=(${rx},${ry})`);
@@ -88,36 +86,17 @@ function createTaskbarWidget() {
     widgetWindow.webContents.send('widget-lock-state', isLocked());
   });
 
-  // Mouse interaction
-  ipcMain.on('widget-mouse-enter', () => {
-    if (widgetWindow && !widgetWindow.isDestroyed()) {
-      widgetWindow.setIgnoreMouseEvents(false);
-    }
-  });
-
-  ipcMain.on('widget-mouse-leave', () => {
-    if (widgetWindow && !widgetWindow.isDestroyed() && !isDragging) {
-      widgetWindow.setIgnoreMouseEvents(true, { forward: true });
-    }
-  });
-
   ipcMain.on('widget-toggle-popup', () => {
     togglePopup();
   });
 
-  // Drag: receive absolute screen position from renderer, set directly
-  ipcMain.on('widget-drag-start', () => {
-    isDragging = true;
-  });
-
   ipcMain.on('widget-drag-to', (_event, x, y) => {
-    if (isLocked() || !isDragging) return;
+    if (isLocked()) return;
     if (!widgetWindow || widgetWindow.isDestroyed()) return;
     widgetWindow.setPosition(x, y);
   });
 
   ipcMain.on('widget-drag-end', () => {
-    isDragging = false;
     if (isLocked()) return;
     if (!widgetWindow || widgetWindow.isDestroyed()) return;
     const [x, y] = widgetWindow.getPosition();
