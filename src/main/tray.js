@@ -2,18 +2,37 @@ const { Tray, Menu, nativeImage, app } = require('electron');
 const path = require('path');
 
 let tray = null;
+let resetWidgetFn = null;
 
 function createTrayIcon() {
   const iconPath = path.join(__dirname, '..', '..', 'assets', 'claude-favicon.ico');
   return nativeImage.createFromPath(iconPath);
 }
 
-function createTray(onToggle) {
+function createTray(onToggle, onResetWidget) {
   const icon = createTrayIcon();
   tray = new Tray(icon);
   tray.setToolTip('Claude Usage Monitor - 로딩중...');
+  resetWidgetFn = onResetWidget;
 
+  rebuildContextMenu();
+
+  tray.on('click', () => {
+    onToggle();
+  });
+
+  return tray;
+}
+
+function rebuildContextMenu() {
   const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '위젯 위치 초기화',
+      click: () => {
+        if (resetWidgetFn) resetWidgetFn();
+      },
+    },
+    { type: 'separator' },
     {
       label: '시작 시 실행',
       type: 'checkbox',
@@ -30,12 +49,6 @@ function createTray(onToggle) {
   ]);
 
   tray.setContextMenu(contextMenu);
-
-  tray.on('click', () => {
-    onToggle();
-  });
-
-  return tray;
 }
 
 function updateTrayTooltip(text) {

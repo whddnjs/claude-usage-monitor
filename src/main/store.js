@@ -1,8 +1,16 @@
 const fs = require('fs');
 const path = require('path');
+const { app } = require('electron');
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
-const HISTORY_FILE = path.join(DATA_DIR, 'usage-history.json');
+let dataDir = null;
+let historyFile = null;
+
+function ensurePaths() {
+  if (!dataDir) {
+    dataDir = app.getPath('userData');
+    historyFile = path.join(dataDir, 'usage-history.json');
+  }
+}
 
 let history = {};
 let lastTotals = null;
@@ -14,9 +22,10 @@ let windows = {
 };
 
 function loadHistory() {
+  ensurePaths();
   try {
-    if (fs.existsSync(HISTORY_FILE)) {
-      const raw = fs.readFileSync(HISTORY_FILE, 'utf-8');
+    if (fs.existsSync(historyFile)) {
+      const raw = fs.readFileSync(historyFile, 'utf-8');
       const data = JSON.parse(raw);
       history = data.daily || data;
       if (data.windows) windows = data.windows;
@@ -27,11 +36,12 @@ function loadHistory() {
 }
 
 function saveHistory() {
+  ensurePaths();
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
     }
-    fs.writeFileSync(HISTORY_FILE, JSON.stringify({ daily: history, windows }, null, 2), 'utf-8');
+    fs.writeFileSync(historyFile, JSON.stringify({ daily: history, windows }, null, 2), 'utf-8');
   } catch (err) {
     console.error('Failed to save history:', err.message);
   }

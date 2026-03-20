@@ -4,6 +4,8 @@ const ring5hCanvas = document.getElementById('ring5h');
 const ring7dCanvas = document.getElementById('ring7d');
 const widgetEl = document.getElementById('widget');
 
+let locked = false;
+
 function getColor(pct) {
   if (pct >= 80) return ['#dc2626', 'rgba(220,38,38,0.25)'];
   if (pct >= 50) return ['#eab308', 'rgba(234,179,8,0.25)'];
@@ -42,6 +44,19 @@ function drawRing(canvas, pct) {
   }
 }
 
+function updateCursor() {
+  widgetEl.style.cursor = locked ? 'default' : 'grab';
+}
+
+// --- Lock state ---
+window.widgetApi.onLockState((state) => {
+  locked = state;
+  updateCursor();
+});
+
+// Request initial lock state
+window.widgetApi.getLockState();
+
 // --- Drag & Click handling ---
 const DRAG_THRESHOLD = 5;
 let dragState = null;
@@ -54,12 +69,14 @@ widgetEl.addEventListener('mousedown', (e) => {
 
 document.addEventListener('mousemove', (e) => {
   if (!dragState) return;
+  if (locked) return;
 
   const dx = e.screenX - dragState.startX;
   const dy = e.screenY - dragState.startY;
 
   if (!dragState.dragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
     dragState.dragging = true;
+    widgetEl.style.cursor = 'grabbing';
   }
 
   if (dragState.dragging) {
@@ -74,6 +91,7 @@ document.addEventListener('mouseup', (e) => {
 
   if (dragState.dragging) {
     window.widgetApi.dragEnd();
+    updateCursor();
   } else if (e.button === 0) {
     window.widgetApi.togglePopup();
   }

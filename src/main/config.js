@@ -1,15 +1,23 @@
 const fs = require('fs');
 const path = require('path');
+const { app } = require('electron');
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
-const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
-
+let configDir = null;
+let configFile = null;
 let config = {};
 
+function ensurePaths() {
+  if (!configDir) {
+    configDir = path.join(app.getPath('userData'));
+    configFile = path.join(configDir, 'config.json');
+  }
+}
+
 function loadConfig() {
+  ensurePaths();
   try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+    if (fs.existsSync(configFile)) {
+      config = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
     }
   } catch {
     config = {};
@@ -18,11 +26,12 @@ function loadConfig() {
 }
 
 function saveConfig() {
+  ensurePaths();
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
     }
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+    fs.writeFileSync(configFile, JSON.stringify(config, null, 2), 'utf-8');
   } catch (err) {
     console.error('Failed to save config:', err.message);
   }
