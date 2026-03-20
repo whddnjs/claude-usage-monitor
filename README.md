@@ -14,6 +14,7 @@ Windows 시스템 트레이 + 태스크바에서 Claude Code 사용량을 실시
 - **시스템 트레이**: Claude 아이콘 + 우클릭 메뉴 (시작 시 실행, 종료)
 - **새로고침**: 팝업에서 수동 새로고침 가능 (자동 30초 주기)
 - **Windows 알림**: 임계값 초과 시 토스트 알림
+- **스플래시 화면**: 앱 시작 시 로딩 화면 표시
 
 ## 요구사항
 
@@ -68,7 +69,8 @@ claude-usage-monitor/
 │       ├── popup.html/js       # 팝업 대시보드 UI
 │       └── index.html/css/js   # 메인 대시보드 UI
 ├── assets/
-│   └── claude-favicon.ico      # 트레이 아이콘
+│   ├── claude-favicon.ico      # 트레이/앱 아이콘 (ICO)
+│   └── claude-icon.png         # 팝업/스플래시 아이콘 (PNG)
 ├── package.json
 └── electron-builder.yml
 ```

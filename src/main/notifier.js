@@ -37,9 +37,4 @@ function showNotification(title, body) {
   n.show();
 }
 
-function resetAlerts() {
-  alertedCost = false;
-  alertedTokens = false;
-}
-
-module.exports = { checkThresholds, resetAlerts };
+module.exports = { checkThresholds };

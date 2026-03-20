@@ -181,9 +181,3 @@ window.api.getUsage().then(updateUI);
 
 // Live updates from main process
 window.api.onUsageUpdate(updateUI);
-
-// Periodically sync reset timer
-setInterval(async () => {
-  const ms = await window.api.getResetTimer();
-  resetTargetMs = Date.now() + ms;
-}, 60000);

@@ -1,6 +1,8 @@
 const { BrowserWindow, screen, ipcMain } = require('electron');
 const path = require('path');
 
+const APP_ICON = path.join(__dirname, '..', '..', 'assets', 'claude-favicon.ico');
+
 let widgetWindow = null;
 let popupWindow = null;
 let lastRateLimits = null;
@@ -134,6 +136,7 @@ function createPopup() {
     skipTaskbar: true,
     alwaysOnTop: true,
     show: false,
+    icon: APP_ICON,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload-popup.js'),
       contextIsolation: true,
@@ -167,8 +170,4 @@ function updateWidget(data) {
   }
 }
 
-function getWidgetWindow() {
-  return widgetWindow;
-}
-
-module.exports = { createTaskbarWidget, updateWidget, getWidgetWindow, togglePopup };
+module.exports = { createTaskbarWidget, updateWidget, togglePopup };

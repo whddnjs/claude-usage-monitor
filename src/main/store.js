@@ -13,12 +13,6 @@ let windows = {
   weekly: { slotKey: null, cost: 0, tokens: 0 },
 };
 
-// Max limits for Max 5x (adjustable)
-const LIMITS = {
-  fiveHour: { cost: 6.0 },
-  weekly: { cost: 45.0 },
-};
-
 function loadHistory() {
   try {
     if (fs.existsSync(HISTORY_FILE)) {
@@ -63,33 +57,6 @@ function getWeeklyKey() {
   return `W-${d.toISOString().slice(0, 10)}`;
 }
 
-// Time until next 5-hour slot reset (ms)
-function getFiveHourResetMs() {
-  const now = new Date();
-  const currentSlot = Math.floor(now.getUTCHours() / 5);
-  const nextSlotHour = (currentSlot + 1) * 5;
-  const next = new Date(now);
-  if (nextSlotHour >= 24) {
-    next.setUTCDate(next.getUTCDate() + 1);
-    next.setUTCHours(0, 0, 0, 0);
-  } else {
-    next.setUTCHours(nextSlotHour, 0, 0, 0);
-  }
-  return next.getTime() - now.getTime();
-}
-
-// Time until next weekly reset (Monday UTC 00:00)
-function getWeeklyResetMs() {
-  const now = new Date();
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const day = d.getUTCDay() || 7;
-  const daysUntilMonday = day === 1 ? 7 : (8 - day);
-  const nextMonday = new Date(d);
-  nextMonday.setUTCDate(nextMonday.getUTCDate() + daysUntilMonday);
-  nextMonday.setUTCHours(0, 0, 0, 0);
-  return nextMonday.getTime() - now.getTime();
-}
-
 function recordUsage(totals) {
   const today = getToday();
   const fiveHourKey = getFiveHourSlotKey();
@@ -127,26 +94,19 @@ function recordUsage(totals) {
     return;
   }
 
-  if (lastTotals) {
-    const diffCost = totals.cost - lastTotals.cost;
-    const diffTokens = (totals.inputTokens + totals.outputTokens) - (lastTotals.inputTokens + lastTotals.outputTokens);
+  const diffCost = totals.cost - lastTotals.cost;
+  const diffTokens = (totals.inputTokens + totals.outputTokens) - (lastTotals.inputTokens + lastTotals.outputTokens);
 
-    if (diffCost > 0) {
-      history[today].cost += diffCost;
-      windows.fiveHour.cost += diffCost;
-      windows.weekly.cost += diffCost;
-    }
-    if (diffTokens > 0) {
-      history[today].inputTokens += totals.inputTokens - lastTotals.inputTokens;
-      history[today].outputTokens += totals.outputTokens - lastTotals.outputTokens;
-      windows.fiveHour.tokens += diffTokens;
-      windows.weekly.tokens += diffTokens;
-    }
-  } else {
-    // First read - use current totals as baseline for daily
-    history[today].cost = totals.cost;
-    history[today].inputTokens = totals.inputTokens;
-    history[today].outputTokens = totals.outputTokens;
+  if (diffCost > 0) {
+    history[today].cost += diffCost;
+    windows.fiveHour.cost += diffCost;
+    windows.weekly.cost += diffCost;
+  }
+  if (diffTokens > 0) {
+    history[today].inputTokens += totals.inputTokens - lastTotals.inputTokens;
+    history[today].outputTokens += totals.outputTokens - lastTotals.outputTokens;
+    windows.fiveHour.tokens += diffTokens;
+    windows.weekly.tokens += diffTokens;
   }
 
   lastTotals = { ...totals };
@@ -158,25 +118,6 @@ function recordUsage(totals) {
   }
 
   saveHistory();
-}
-
-function getWindowUsage() {
-  return {
-    fiveHour: {
-      cost: windows.fiveHour.cost,
-      tokens: windows.fiveHour.tokens,
-      costPct: Math.min(100, (windows.fiveHour.cost / LIMITS.fiveHour.cost) * 100),
-      resetMs: getFiveHourResetMs(),
-      limit: LIMITS.fiveHour,
-    },
-    weekly: {
-      cost: windows.weekly.cost,
-      tokens: windows.weekly.tokens,
-      costPct: Math.min(100, (windows.weekly.cost / LIMITS.weekly.cost) * 100),
-      resetMs: getWeeklyResetMs(),
-      limit: LIMITS.weekly,
-    },
-  };
 }
 
 function getRecentDays(n) {
@@ -195,4 +136,4 @@ function getRecentDays(n) {
   return result;
 }
 
-module.exports = { loadHistory, recordUsage, getRecentDays, getWindowUsage };
+module.exports = { loadHistory, recordUsage, getRecentDays };

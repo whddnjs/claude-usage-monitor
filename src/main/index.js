@@ -5,10 +5,13 @@ const { createTaskbarWidget, updateWidget, togglePopup } = require('./taskbar-wi
 const { startWatching, stopWatching } = require('./watcher');
 const { parseClaudeData } = require('./parser');
 const { loadHistory, recordUsage, getRecentDays } = require('./store');
-const { checkThresholds, resetAlerts } = require('./notifier');
+const { checkThresholds } = require('./notifier');
 const { fetchRateLimits } = require('./rate-limit');
 
+const APP_ICON = path.join(__dirname, '..', '..', 'assets', 'claude-favicon.ico');
+
 let mainWindow = null;
+let splashWindow = null;
 let tray = null;
 let lastData = null;
 let lastRateLimits = null;
@@ -26,6 +29,34 @@ app.on('second-instance', () => {
   }
 });
 
+function createSplash() {
+  splashWindow = new BrowserWindow({
+    width: 280,
+    height: 180,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    icon: APP_ICON,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  splashWindow.loadFile(path.join(__dirname, '..', 'renderer', 'splash.html'));
+  splashWindow.center();
+  splashWindow.show();
+}
+
+function closeSplash() {
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    splashWindow.close();
+    splashWindow = null;
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 420,
@@ -36,6 +67,7 @@ function createWindow() {
     skipTaskbar: true,
     transparent: false,
     backgroundColor: '#1a1a2e',
+    icon: APP_ICON,
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload.js'),
       contextIsolation: true,
@@ -129,16 +161,22 @@ process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   console.log('App ready');
+
+  // Show splash screen immediately
+  createSplash();
+
   loadHistory();
   tray = createTray(togglePopup);
   createTaskbarWidget();
   createWindow();
 
   // Initial load
-  refreshData();
-  refreshRateLimits();
+  await Promise.all([refreshData(), refreshRateLimits()]);
+
+  // Close splash after initial data is loaded
+  closeSplash();
 
   // Watch for file changes → refresh data
   startWatching(() => {
