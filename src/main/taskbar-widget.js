@@ -82,26 +82,13 @@ function createTaskbarWidget() {
     }
   });
 
-  // Re-assert always-on-top if Windows removes it (e.g. taskbar click)
-  widgetWindow.on('always-on-top-changed', (_event, isOnTop) => {
-    if (!isOnTop && widgetWindow && !widgetWindow.isDestroyed()) {
+  // Periodically re-assert always-on-top z-order
+  // Position is protected by will-move + setMovable(false), so this is safe
+  setInterval(() => {
+    if (widgetWindow && !widgetWindow.isDestroyed()) {
       widgetWindow.setAlwaysOnTop(true, 'screen-saver');
     }
-  });
-
-  // Re-show if Windows hides the widget (e.g. show desktop, taskbar interaction)
-  widgetWindow.on('hide', () => {
-    if (widgetWindow && !widgetWindow.isDestroyed()) {
-      widgetWindow.showInactive();
-    }
-  });
-
-  widgetWindow.on('minimize', () => {
-    if (widgetWindow && !widgetWindow.isDestroyed()) {
-      widgetWindow.restore();
-      widgetWindow.showInactive();
-    }
-  });
+  }, 1000);
 
   widgetWindow.webContents.on('did-finish-load', () => {
     widgetWindow.setBounds({ x: pos.x, y: pos.y, width: WIDGET_W, height: WIDGET_H });
