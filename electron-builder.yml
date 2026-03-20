@@ -7,7 +7,7 @@ win:
     - target: portable
       arch:
         - x64
-  icon: assets/claude-favicon.ico
+  icon: assets/claude-icon.png
   sign: false
 portable:
   artifactName: ${productName}-${version}-portable.exe
