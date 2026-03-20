@@ -126,7 +126,9 @@ window.widgetApi.onUpdate((data) => {
   const pct5h = Math.round(fiveHour.utilization * 100);
   const pct7d = Math.round(sevenDay.utilization * 100);
 
+  fiveHourLabelEl.textContent = pct5h;
   fiveHourLabelEl.style.color = getColor(pct5h)[0];
+  weeklyLabelEl.textContent = pct7d;
   weeklyLabelEl.style.color = getColor(pct7d)[0];
 
   drawRing(ring5hCanvas, pct5h);

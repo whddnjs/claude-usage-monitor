@@ -16,6 +16,7 @@ let widgetWindow = null;
 let popupWindow = null;
 let lastRateLimits = null;
 let isDragging = false;
+let allowMove = false;
 
 function getDefaultPosition() {
   const display = screen.getPrimaryDisplay();
@@ -82,7 +83,7 @@ function createTaskbarWidget() {
 
   // Prevent Windows DWM from moving the widget on its own (e.g. on click)
   widgetWindow.on('will-move', (event) => {
-    if (!isDragging) {
+    if (!isDragging && !allowMove) {
       event.preventDefault();
     }
   });
@@ -264,7 +265,9 @@ function createPopup() {
 function repositionWidget() {
   if (!widgetWindow || widgetWindow.isDestroyed()) return;
   const pos = getDefaultPosition();
+  allowMove = true;
   widgetWindow.setBounds({ x: pos.x, y: pos.y, width: getWidgetWidth(), height: WIDGET_H });
+  allowMove = false;
 }
 
 function updateWidget(data) {
@@ -282,7 +285,9 @@ function setShowWeekly(show) {
   config.set('showWeekly', show);
   if (widgetWindow && !widgetWindow.isDestroyed()) {
     const b = widgetWindow.getBounds();
+    allowMove = true;
     widgetWindow.setBounds({ x: b.x, y: b.y, width: getWidgetWidth(), height: WIDGET_H });
+    allowMove = false;
     widgetWindow.webContents.send('widget-show-weekly', show);
   }
 }
