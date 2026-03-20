@@ -10,6 +10,7 @@ const WIDGET_H = 48;
 let widgetWindow = null;
 let popupWindow = null;
 let lastRateLimits = null;
+let isDragging = false;
 
 function getDefaultPosition() {
   const display = screen.getPrimaryDisplay();
@@ -71,17 +72,22 @@ function createTaskbarWidget() {
   });
 
   widgetWindow.setAlwaysOnTop(true, 'screen-saver');
+  widgetWindow.setMovable(false);
   widgetWindow.loadFile(path.join(__dirname, '..', 'renderer', 'widget.html'));
 
-  // No setIgnoreMouseEvents - widget is always interactive
-  // This prevents the DWM position adjustment caused by toggling ignore state
+  // Prevent Windows DWM from moving the widget on its own (e.g. on click)
+  widgetWindow.on('will-move', (event) => {
+    if (!isDragging) {
+      event.preventDefault();
+    }
+  });
 
   widgetWindow.webContents.on('did-finish-load', () => {
-    widgetWindow.setPosition(pos.x, pos.y);
+    widgetWindow.setBounds({ x: pos.x, y: pos.y, width: WIDGET_W, height: WIDGET_H });
     widgetWindow.showInactive();
 
-    const [rx, ry] = widgetWindow.getPosition();
-    console.log(`[Widget] After show: target=(${pos.x},${pos.y}), actual=(${rx},${ry})`);
+    const b = widgetWindow.getBounds();
+    console.log(`[Widget] After show: target=(${pos.x},${pos.y}), actual=(${b.x},${b.y})`);
 
     widgetWindow.webContents.send('widget-lock-state', isLocked());
   });
@@ -90,18 +96,23 @@ function createTaskbarWidget() {
     togglePopup();
   });
 
+  ipcMain.on('widget-drag-start', () => {
+    isDragging = true;
+  });
+
   ipcMain.on('widget-drag-to', (_event, x, y) => {
     if (isLocked()) return;
     if (!widgetWindow || widgetWindow.isDestroyed()) return;
-    widgetWindow.setPosition(x, y);
+    widgetWindow.setBounds({ x, y, width: WIDGET_W, height: WIDGET_H });
   });
 
   ipcMain.on('widget-drag-end', () => {
+    isDragging = false;
     if (isLocked()) return;
     if (!widgetWindow || widgetWindow.isDestroyed()) return;
-    const [x, y] = widgetWindow.getPosition();
-    config.set('widgetPosition', { x, y });
-    console.log(`[Widget] Position saved: (${x}, ${y})`);
+    const b = widgetWindow.getBounds();
+    config.set('widgetPosition', { x: b.x, y: b.y });
+    console.log(`[Widget] Position saved: (${b.x}, ${b.y})`);
   });
 
   ipcMain.on('widget-context-menu', () => {
@@ -239,7 +250,7 @@ function createPopup() {
 function repositionWidget() {
   if (!widgetWindow || widgetWindow.isDestroyed()) return;
   const pos = getDefaultPosition();
-  widgetWindow.setPosition(pos.x, pos.y);
+  widgetWindow.setBounds({ x: pos.x, y: pos.y, width: WIDGET_W, height: WIDGET_H });
 }
 
 function updateWidget(data) {
