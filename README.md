@@ -18,30 +18,27 @@ Windows 시스템 트레이 + 태스크바에서 Claude Code 사용량을 실시
 ## 요구사항
 
 - Windows 10/11
-- [Node.js](https://nodejs.org/) v18 이상
 - **Claude Code가 설치되어 있고 로그인된 상태** (`~/.claude/.credentials.json` 필요)
 
-## 설치 및 실행
+## 다운로드 및 실행
+
+1. [Releases](https://github.com/whddnjs/claude-usage-monitor/releases) 페이지에서 최신 `Claude Usage Monitor-x.x.x-portable.exe`를 다운로드합니다
+2. 다운받은 EXE 파일을 실행하면 바로 사용할 수 있습니다 (설치 불필요)
+
+## 개발자용 (소스에서 실행)
 
 ```bash
-# 클론
 git clone https://github.com/whddnjs/claude-usage-monitor.git
 cd claude-usage-monitor
-
-# 의존성 설치
 npm install
-
-# 실행
 npm start
 ```
 
-## 빌드 (Portable EXE)
+### 빌드 (Portable EXE)
 
 ```bash
 npm run build
 ```
-
-`dist/` 폴더에 `Claude Usage Monitor-1.0.0-portable.exe`가 생성됩니다.
 
 ## 작동 방식
 
