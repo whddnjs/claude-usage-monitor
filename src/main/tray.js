@@ -1,0 +1,47 @@
+const { Tray, Menu, nativeImage, app } = require('electron');
+const path = require('path');
+
+let tray = null;
+
+function createTrayIcon() {
+  const iconPath = path.join(__dirname, '..', '..', 'assets', 'claude-favicon.ico');
+  return nativeImage.createFromPath(iconPath);
+}
+
+function createTray(onToggle) {
+  const icon = createTrayIcon();
+  tray = new Tray(icon);
+  tray.setToolTip('Claude Usage Monitor - 로딩중...');
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '시작 시 실행',
+      type: 'checkbox',
+      checked: app.getLoginItemSettings().openAtLogin,
+      click: (menuItem) => {
+        app.setLoginItemSettings({
+          openAtLogin: menuItem.checked,
+          name: 'Claude Usage Monitor',
+        });
+      },
+    },
+    { type: 'separator' },
+    { label: '종료', click: () => { app.quit(); } },
+  ]);
+
+  tray.setContextMenu(contextMenu);
+
+  tray.on('click', () => {
+    onToggle();
+  });
+
+  return tray;
+}
+
+function updateTrayTooltip(text) {
+  if (tray && !tray.isDestroyed()) {
+    tray.setToolTip(text);
+  }
+}
+
+module.exports = { createTray, updateTrayTooltip };

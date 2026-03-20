@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>Claude Widget</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      background: transparent;
+      overflow: hidden;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .widget {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      gap: 5px;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 0 6px;
+      cursor: default;
+      white-space: nowrap;
+    }
+
+    .window-block {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .ring-wrap {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+    .ring-wrap canvas {
+      width: 32px;
+      height: 32px;
+    }
+    .ring-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      font-weight: 800;
+      color: #ccc;
+      user-select: none;
+    }
+
+    .timer {
+      font-size: 10px;
+      font-weight: 500;
+      color: #777;
+      font-variant-numeric: tabular-nums;
+      min-width: 40px;
+    }
+
+    .sep {
+      width: 1px;
+      height: 18px;
+      background: rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="widget" id="widget">
+    <!-- 5-hour window -->
+    <div class="window-block">
+      <div class="ring-wrap">
+        <canvas id="ring5h" width="64" height="64"></canvas>
+        <span class="ring-label" id="fiveHourLabel">S</span>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <!-- Weekly window -->
+    <div class="window-block">
+      <div class="ring-wrap">
+        <canvas id="ring7d" width="64" height="64"></canvas>
+        <span class="ring-label" id="weeklyLabel">W</span>
+      </div>
+    </div>
+  </div>
+  <script src="widget.js"></script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>Claude Usage</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      background: transparent;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      color: #e0e0e0;
+    }
+    .popup {
+      background: #1a1a2e;
+      border: 1px solid rgba(124, 58, 237, 0.4);
+      border-radius: 12px;
+      padding: 20px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .title-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .title-text {
+      flex: 1;
+    }
+    .refresh-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: rgba(255,255,255,0.06);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      font-size: 14px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .refresh-btn:hover {
+      background: rgba(124, 58, 237, 0.2);
+      color: #c4b5fd;
+    }
+    .refresh-btn.spinning svg {
+      animation: spin 0.6s ease;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .section {
+      background: #16213e;
+      border-radius: 10px;
+      padding: 14px;
+      border: 1px solid #2a2a4a;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #aaa;
+    }
+    .section-pct {
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .pct-low { color: #059669; }
+    .pct-mid { color: #eab308; }
+    .pct-high { color: #dc2626; }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    .fill-low { background: #059669; }
+    .fill-mid { background: #eab308; }
+    .fill-high { background: #dc2626; }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #888;
+      margin-top: 4px;
+    }
+    .info-value {
+      color: #ccc;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+  <div class="popup">
+    <div class="title">
+      <img class="title-icon" src="../../assets/claude-icon.png" alt="Claude">
+      <span class="title-text">Claude Usage Monitor</span>
+      <button class="refresh-btn" id="refreshBtn" title="새로고침">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 5-hour session -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-label">세션 (5시간)</span>
+        <span class="section-pct pct-low" id="s-pct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill fill-low" id="s-bar" style="width:0%"></div>
+      </div>
+      <div class="info-row">
+        <span>리셋까지</span>
+        <span class="info-value" id="s-reset">--:--:--</span>
+      </div>
+      <div class="info-row">
+        <span>리셋 시각</span>
+        <span class="info-value" id="s-reset-time">--:--</span>
+      </div>
+      <div class="info-row">
+        <span>상태</span>
+        <span class="info-value" id="s-status">--</span>
+      </div>
+    </div>
+
+    <!-- Weekly -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-label">주간 (7일)</span>
+        <span class="section-pct pct-low" id="w-pct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill fill-low" id="w-bar" style="width:0%"></div>
+      </div>
+      <div class="info-row">
+        <span>리셋까지</span>
+        <span class="info-value" id="w-reset">--:--:--</span>
+      </div>
+      <div class="info-row">
+        <span>리셋 시각</span>
+        <span class="info-value" id="w-reset-time">--:--</span>
+      </div>
+      <div class="info-row">
+        <span>상태</span>
+        <span class="info-value" id="w-status">--</span>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

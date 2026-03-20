@@ -1,0 +1,4 @@
+node_modules/
+dist/
+data/usage-history.json
+*.log

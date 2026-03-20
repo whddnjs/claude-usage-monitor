@@ -1,0 +1,19 @@
+{
+  "name": "claude-usage-monitor",
+  "version": "1.0.0",
+  "description": "Claude Code usage monitor - Windows system tray app",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win"
+  },
+  "author": "초코파이",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.0"
+  }
+}

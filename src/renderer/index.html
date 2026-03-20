@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>Claude Usage Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <span class="account-name" id="accountName">—</span>
+        <span class="badge" id="subBadge">—</span>
+      </div>
+      <div class="header-right">
+        <div class="reset-timer">
+          <span class="reset-label">리셋</span>
+          <span class="reset-value" id="resetTimer">--:--:--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-label">총 비용</div>
+        <div class="card-value" id="totalCost">$0.00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">총 토큰</div>
+        <div class="card-value" id="totalTokens">0</div>
+      </div>
+      <div class="card">
+        <div class="card-label">프로젝트</div>
+        <div class="card-value" id="projectCount">0</div>
+      </div>
+    </div>
+
+    <!-- Daily Chart -->
+    <div class="section">
+      <div class="section-title">일별 사용량 (최근 7일)</div>
+      <canvas id="dailyChart" width="380" height="120"></canvas>
+    </div>
+
+    <!-- Project Table -->
+    <div class="section">
+      <div class="section-title">프로젝트별 사용량</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>프로젝트</th>
+              <th>비용</th>
+              <th>In/Out</th>
+              <th>캐시</th>
+            </tr>
+          </thead>
+          <tbody id="projectTable">
+            <tr><td colspan="4" class="empty">데이터 없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Model Usage -->
+    <div class="section">
+      <div class="section-title">모델별 사용량</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>모델</th>
+              <th>비용</th>
+              <th>토큰</th>
+            </tr>
+          </thead>
+          <tbody id="modelTable">
+            <tr><td colspan="3" class="empty">데이터 없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

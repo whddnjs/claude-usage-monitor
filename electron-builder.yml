@@ -1,0 +1,17 @@
+appId: com.choco.claude-usage-monitor
+productName: Claude Usage Monitor
+directories:
+  output: dist
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  icon: assets/claude-favicon.ico
+portable:
+  artifactName: ${productName}-${version}-portable.exe
+files:
+  - src/**/*
+  - data/**/*
+  - assets/**/*
+  - package.json
