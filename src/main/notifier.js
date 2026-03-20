@@ -1,29 +1,26 @@
 const { Notification } = require('electron');
 
-const THRESHOLDS = {
-  cost: 5,        // $5
-  tokens: 500000, // 500K
-};
+let alerted5h = false;
+let alerted7d = false;
 
-let alertedCost = false;
-let alertedTokens = false;
+function checkRateLimitThresholds(rateLimits) {
+  if (!rateLimits) return;
 
-function checkThresholds(totals) {
-  if (!alertedCost && totals.cost >= THRESHOLDS.cost) {
-    alertedCost = true;
-    showNotification(
-      '비용 임계값 초과',
-      `총 비용이 $${totals.cost.toFixed(2)}에 도달했습니다 (임계값: $${THRESHOLDS.cost})`
-    );
+  const pct5h = Math.round(rateLimits.fiveHour.utilization * 100);
+  const pct7d = Math.round(rateLimits.sevenDay.utilization * 100);
+
+  if (pct5h >= 80 && !alerted5h) {
+    alerted5h = true;
+    showNotification('세션 사용량 경고', `5시간 세션 사용량이 ${pct5h}%에 도달했습니다`);
+  } else if (pct5h < 80) {
+    alerted5h = false;
   }
 
-  const totalTokens = totals.inputTokens + totals.outputTokens;
-  if (!alertedTokens && totalTokens >= THRESHOLDS.tokens) {
-    alertedTokens = true;
-    showNotification(
-      '토큰 임계값 초과',
-      `총 토큰이 ${(totalTokens / 1000).toFixed(0)}K에 도달했습니다 (임계값: ${THRESHOLDS.tokens / 1000}K)`
-    );
+  if (pct7d >= 80 && !alerted7d) {
+    alerted7d = true;
+    showNotification('주간 사용량 경고', `7일 주간 사용량이 ${pct7d}%에 도달했습니다`);
+  } else if (pct7d < 80) {
+    alerted7d = false;
   }
 }
 
@@ -37,4 +34,4 @@ function showNotification(title, body) {
   n.show();
 }
 
-module.exports = { checkThresholds };
+module.exports = { checkRateLimitThresholds };

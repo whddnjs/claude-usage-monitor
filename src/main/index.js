@@ -5,7 +5,7 @@ const { createTaskbarWidget, updateWidget, togglePopup, resetWidgetPosition, set
 const { startWatching, stopWatching } = require('./watcher');
 const { parseClaudeData } = require('./parser');
 const { loadHistory, recordUsage, getRecentDays } = require('./store');
-const { checkThresholds } = require('./notifier');
+const { checkRateLimitThresholds } = require('./notifier');
 const { fetchRateLimits } = require('./rate-limit');
 const { loadConfig } = require('./config');
 
@@ -116,6 +116,9 @@ async function refreshRateLimits() {
     // Update widget
     updateWidget({ rateLimits: lastRateLimits });
 
+    // Check thresholds
+    checkRateLimitThresholds(lastRateLimits);
+
     // Update tray tooltip
     const pct5h = (lastRateLimits.fiveHour.utilization * 100).toFixed(0);
     const pct7d = (lastRateLimits.sevenDay.utilization * 100).toFixed(0);
@@ -138,8 +141,6 @@ async function refreshData() {
 
     recordUsage(data.totals);
     lastData = data;
-
-    checkThresholds(data.totals);
 
     // Send to renderer
     if (mainWindow && !mainWindow.isDestroyed()) {
