@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { createTray, updateTrayTooltip } = require('./tray');
-const { createTaskbarWidget, updateWidget, togglePopup, resetWidgetPosition } = require('./taskbar-widget');
+const { createTaskbarWidget, updateWidget, togglePopup, resetWidgetPosition, setShowWeekly } = require('./taskbar-widget');
 const { startWatching, stopWatching } = require('./watcher');
 const { parseClaudeData } = require('./parser');
 const { loadHistory, recordUsage, getRecentDays } = require('./store');
@@ -170,7 +170,7 @@ app.whenReady().then(async () => {
 
   loadConfig();
   loadHistory();
-  tray = createTray(togglePopup, resetWidgetPosition);
+  tray = createTray(togglePopup, resetWidgetPosition, setShowWeekly);
   createTaskbarWidget();
   createWindow();
 

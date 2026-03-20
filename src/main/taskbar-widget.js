@@ -4,8 +4,13 @@ const config = require('./config');
 
 const APP_ICON = path.join(__dirname, '..', '..', 'assets', 'claude-favicon.ico');
 
-const WIDGET_W = 100;
+const WIDGET_W_FULL = 100;
+const WIDGET_W_SINGLE = 52;
 const WIDGET_H = 48;
+
+function getWidgetWidth() {
+  return config.get('showWeekly', true) ? WIDGET_W_FULL : WIDGET_W_SINGLE;
+}
 
 let widgetWindow = null;
 let popupWindow = null;
@@ -52,7 +57,7 @@ function createTaskbarWidget() {
   console.log(`[Widget] Creating at (${pos.x}, ${pos.y}), saved=${JSON.stringify(saved)}`);
 
   widgetWindow = new BrowserWindow({
-    width: WIDGET_W,
+    width: getWidgetWidth(),
     height: WIDGET_H,
     x: pos.x,
     y: pos.y,
@@ -88,16 +93,17 @@ function createTaskbarWidget() {
     if (widgetWindow && !widgetWindow.isDestroyed()) {
       widgetWindow.setAlwaysOnTop(true, 'screen-saver');
     }
-  }, 1000);
+  }, 100);
 
   widgetWindow.webContents.on('did-finish-load', () => {
-    widgetWindow.setBounds({ x: pos.x, y: pos.y, width: WIDGET_W, height: WIDGET_H });
+    widgetWindow.setBounds({ x: pos.x, y: pos.y, width: getWidgetWidth(), height: WIDGET_H });
     widgetWindow.showInactive();
 
     const b = widgetWindow.getBounds();
     console.log(`[Widget] After show: target=(${pos.x},${pos.y}), actual=(${b.x},${b.y})`);
 
     widgetWindow.webContents.send('widget-lock-state', isLocked());
+    widgetWindow.webContents.send('widget-show-weekly', config.get('showWeekly', true));
   });
 
   ipcMain.on('widget-toggle-popup', () => {
@@ -111,7 +117,7 @@ function createTaskbarWidget() {
   ipcMain.on('widget-drag-to', (_event, x, y) => {
     if (isLocked()) return;
     if (!widgetWindow || widgetWindow.isDestroyed()) return;
-    widgetWindow.setBounds({ x, y, width: WIDGET_W, height: WIDGET_H });
+    widgetWindow.setBounds({ x, y, width: getWidgetWidth(), height: WIDGET_H });
   });
 
   ipcMain.on('widget-drag-end', () => {
@@ -258,7 +264,7 @@ function createPopup() {
 function repositionWidget() {
   if (!widgetWindow || widgetWindow.isDestroyed()) return;
   const pos = getDefaultPosition();
-  widgetWindow.setBounds({ x: pos.x, y: pos.y, width: WIDGET_W, height: WIDGET_H });
+  widgetWindow.setBounds({ x: pos.x, y: pos.y, width: getWidgetWidth(), height: WIDGET_H });
 }
 
 function updateWidget(data) {
@@ -272,4 +278,13 @@ function updateWidget(data) {
   }
 }
 
-module.exports = { createTaskbarWidget, updateWidget, togglePopup, resetWidgetPosition };
+function setShowWeekly(show) {
+  config.set('showWeekly', show);
+  if (widgetWindow && !widgetWindow.isDestroyed()) {
+    const b = widgetWindow.getBounds();
+    widgetWindow.setBounds({ x: b.x, y: b.y, width: getWidgetWidth(), height: WIDGET_H });
+    widgetWindow.webContents.send('widget-show-weekly', show);
+  }
+}
+
+module.exports = { createTaskbarWidget, updateWidget, togglePopup, resetWidgetPosition, setShowWeekly };

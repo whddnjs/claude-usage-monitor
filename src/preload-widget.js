@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld('widgetApi', {
   onLockState: (callback) => {
     ipcRenderer.on('widget-lock-state', (_event, locked) => callback(locked));
   },
+  onShowWeekly: (callback) => {
+    ipcRenderer.on('widget-show-weekly', (_event, show) => callback(show));
+  },
   togglePopup: () => ipcRenderer.send('widget-toggle-popup'),
   dragStart: () => ipcRenderer.send('widget-drag-start'),
   dragTo: (x, y) => ipcRenderer.send('widget-drag-to', x, y),

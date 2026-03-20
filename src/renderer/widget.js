@@ -3,6 +3,8 @@ const weeklyLabelEl = document.getElementById('weeklyLabel');
 const ring5hCanvas = document.getElementById('ring5h');
 const ring7dCanvas = document.getElementById('ring7d');
 const widgetEl = document.getElementById('widget');
+const weeklyBlock = document.getElementById('weeklyBlock');
+const sepEl = document.getElementById('sep');
 
 let locked = false;
 
@@ -54,6 +56,12 @@ window.widgetApi.onLockState((state) => {
   updateCursor();
 });
 window.widgetApi.getLockState();
+
+// --- Show weekly toggle ---
+window.widgetApi.onShowWeekly((show) => {
+  weeklyBlock.style.display = show ? 'flex' : 'none';
+  sepEl.style.display = show ? 'block' : 'none';
+});
 
 // --- Drag & Click ---
 const DRAG_THRESHOLD = 5;
