@@ -7,25 +7,67 @@ let widgetWindow = null;
 let popupWindow = null;
 let lastRateLimits = null;
 
-function getTaskbarPosition() {
+function getTaskbarInfo() {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width: totalW, height: totalH } = primaryDisplay.size;
-  const { width: workW, height: workH } = primaryDisplay.workAreaSize;
-  const taskbarHeight = totalH - workH;
+  const workArea = primaryDisplay.workArea;
+  const scaleFactor = primaryDisplay.scaleFactor || 1;
 
-  const widgetW = 420;
-  const widgetH = taskbarHeight > 0 ? taskbarHeight : 48;
+  // Detect taskbar position by comparing workArea to total size
+  let taskbarPos = 'bottom';
+  let taskbarSize = 0;
 
-  const x = totalW - widgetW - 100;
-  const y = workH;
+  if (workArea.y > 0) {
+    taskbarPos = 'top';
+    taskbarSize = workArea.y;
+  } else if (workArea.x > 0) {
+    taskbarPos = 'left';
+    taskbarSize = workArea.x;
+  } else if (workArea.width < totalW) {
+    taskbarPos = 'right';
+    taskbarSize = totalW - workArea.width;
+  } else {
+    taskbarPos = 'bottom';
+    taskbarSize = totalH - workArea.height;
+  }
 
-  console.log(`Screen: ${totalW}x${totalH}, WorkArea: ${workW}x${workH}, Taskbar: ${taskbarHeight}px, Widget at (${x}, ${y})`);
+  // Fallback taskbar size
+  if (taskbarSize <= 0) taskbarSize = Math.round(48 / scaleFactor);
 
-  return { x, y, widgetW, widgetH };
+  console.log(`Screen: ${totalW}x${totalH}, WorkArea: ${workArea.x},${workArea.y} ${workArea.width}x${workArea.height}, Taskbar: ${taskbarPos} ${taskbarSize}px, Scale: ${scaleFactor}`);
+
+  return { totalW, totalH, workArea, taskbarPos, taskbarSize, scaleFactor };
+}
+
+function getWidgetBounds() {
+  const { totalW, totalH, workArea, taskbarPos, taskbarSize } = getTaskbarInfo();
+
+  // Widget content is 2 rings (32px each) + separator + gaps ≈ 90px
+  const widgetW = 100;
+  const widgetH = taskbarSize;
+
+  let x, y;
+
+  if (taskbarPos === 'bottom') {
+    x = totalW - widgetW - 140;
+    y = workArea.height + workArea.y;
+  } else if (taskbarPos === 'top') {
+    x = totalW - widgetW - 140;
+    y = 0;
+  } else if (taskbarPos === 'right') {
+    x = workArea.width + workArea.x;
+    y = totalH - widgetH - 100;
+  } else {
+    // left
+    x = 0;
+    y = totalH - widgetH - 100;
+  }
+
+  return { x, y, widgetW, widgetH, taskbarPos };
 }
 
 function createTaskbarWidget() {
-  const { x, y, widgetW, widgetH } = getTaskbarPosition();
+  const { x, y, widgetW, widgetH } = getWidgetBounds();
 
   widgetWindow = new BrowserWindow({
     width: widgetW,
@@ -98,12 +140,32 @@ function togglePopup() {
     createPopup();
   }
 
-  // Position above widget
+  // Position popup relative to widget, based on taskbar position
   const widgetBounds = widgetWindow.getBounds();
+  const { taskbarPos } = getWidgetBounds();
   const popupW = 320;
   const popupH = 380;
-  const x = Math.round(widgetBounds.x + widgetBounds.width / 2 - popupW / 2);
-  const y = widgetBounds.y - popupH - 8;
+
+  let x, y;
+
+  if (taskbarPos === 'bottom') {
+    x = Math.round(widgetBounds.x + widgetBounds.width / 2 - popupW / 2);
+    y = widgetBounds.y - popupH - 8;
+  } else if (taskbarPos === 'top') {
+    x = Math.round(widgetBounds.x + widgetBounds.width / 2 - popupW / 2);
+    y = widgetBounds.y + widgetBounds.height + 8;
+  } else if (taskbarPos === 'right') {
+    x = widgetBounds.x - popupW - 8;
+    y = Math.round(widgetBounds.y + widgetBounds.height / 2 - popupH / 2);
+  } else {
+    x = widgetBounds.x + widgetBounds.width + 8;
+    y = Math.round(widgetBounds.y + widgetBounds.height / 2 - popupH / 2);
+  }
+
+  // Clamp to screen bounds
+  const { totalW, totalH } = getTaskbarInfo();
+  x = Math.max(0, Math.min(x, totalW - popupW));
+  y = Math.max(0, Math.min(y, totalH - popupH));
 
   popupWindow.setBounds({ x, y, width: popupW, height: popupH });
 
@@ -155,8 +217,8 @@ function createPopup() {
 
 function repositionWidget() {
   if (!widgetWindow || widgetWindow.isDestroyed()) return;
-  const { x, y } = getTaskbarPosition();
-  widgetWindow.setPosition(x, y);
+  const { x, y, widgetW, widgetH } = getWidgetBounds();
+  widgetWindow.setBounds({ x, y, width: widgetW, height: widgetH });
 }
 
 function updateWidget(data) {
