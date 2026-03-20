@@ -30,10 +30,10 @@ function getDefaultPosition() {
 
   let x, y;
   if (taskbarPos === 'bottom') {
-    x = bounds.x + totalW - WIDGET_W - 140;
+    x = bounds.x + totalW - getWidgetWidth() - 140;
     y = workArea.y + workArea.height;
   } else if (taskbarPos === 'top') {
-    x = bounds.x + totalW - WIDGET_W - 140;
+    x = bounds.x + totalW - getWidgetWidth() - 140;
     y = bounds.y;
   } else if (taskbarPos === 'right') {
     x = workArea.x + workArea.width;
