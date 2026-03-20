@@ -23,14 +23,12 @@ function drawRing(canvas, pct) {
 
   const [fg, bg] = getColor(pct);
 
-  // Background ring
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.strokeStyle = bg;
   ctx.lineWidth = lineW;
   ctx.stroke();
 
-  // Foreground arc
   if (pct > 0) {
     const startAngle = -Math.PI / 2;
     const endAngle = startAngle + (Math.PI * 2 * Math.min(pct, 100) / 100);
@@ -44,10 +42,60 @@ function drawRing(canvas, pct) {
   }
 }
 
-widgetEl.addEventListener('mouseenter', () => window.widgetApi.mouseEnter());
-widgetEl.addEventListener('mouseleave', () => window.widgetApi.mouseLeave());
-widgetEl.addEventListener('click', () => window.widgetApi.togglePopup());
+// --- Drag & Click handling ---
+const DRAG_THRESHOLD = 5;
+let dragState = null;
 
+widgetEl.addEventListener('mousedown', (e) => {
+  if (e.button === 0) {
+    dragState = { startX: e.screenX, startY: e.screenY, dragging: false };
+  }
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!dragState) return;
+
+  const dx = e.screenX - dragState.startX;
+  const dy = e.screenY - dragState.startY;
+
+  if (!dragState.dragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
+    dragState.dragging = true;
+  }
+
+  if (dragState.dragging) {
+    window.widgetApi.dragMove(dx, dy);
+    dragState.startX = e.screenX;
+    dragState.startY = e.screenY;
+  }
+});
+
+document.addEventListener('mouseup', (e) => {
+  if (!dragState) return;
+
+  if (dragState.dragging) {
+    window.widgetApi.dragEnd();
+  } else if (e.button === 0) {
+    window.widgetApi.togglePopup();
+  }
+
+  dragState = null;
+});
+
+// Right-click → context menu
+widgetEl.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  window.widgetApi.contextMenu();
+});
+
+// Mouse enter/leave for click-through toggle
+widgetEl.addEventListener('mouseenter', () => window.widgetApi.mouseEnter());
+widgetEl.addEventListener('mouseleave', () => {
+  if (!dragState) {
+    window.widgetApi.mouseLeave();
+  }
+});
+
+// --- Data updates ---
 window.widgetApi.onUpdate((data) => {
   if (!data || !data.rateLimits) return;
 

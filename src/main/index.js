@@ -7,6 +7,7 @@ const { parseClaudeData } = require('./parser');
 const { loadHistory, recordUsage, getRecentDays } = require('./store');
 const { checkThresholds } = require('./notifier');
 const { fetchRateLimits } = require('./rate-limit');
+const { loadConfig } = require('./config');
 
 const APP_ICON = path.join(__dirname, '..', '..', 'assets', 'claude-favicon.ico');
 
@@ -167,6 +168,7 @@ app.whenReady().then(async () => {
   // Show splash screen immediately
   createSplash();
 
+  loadConfig();
   loadHistory();
   tray = createTray(togglePopup);
   createTaskbarWidget();

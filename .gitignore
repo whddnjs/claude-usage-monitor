@@ -1,4 +1,5 @@
 node_modules/
 dist/
 data/usage-history.json
+data/config.json
 *.log
